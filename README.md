@@ -1,9 +1,9 @@
-# WooCommerce-ultimate-custom-fields
-Komplex leírás hogyan lehet egyedi mezőket létrehozni a WooCommerce termékekhez / azok megjelenítése, kezelése
+# WooCommerce kód alapú megoldások, funkció kiegészítések
+Kiegészítő kódok a WooCommerce bővítményhez, nem csak fejlesztők számára.
 
 ## Ismertető
 
-Ebben a repóban a WooComerce-hez kapcsolódó egyedi mezők kezelése, azok megjelenítése és eseti felhasználásait mutaja be. A beépített metákon kívül, egyéb speciális megközelítést is megnézünk. A meták mellett a backend oldali terméktabok létrehozása, valamint a variálható termékek meta kezelését is megtekintheted.
+Az itt megtalálható leírások és kódok főként a WooCommerce-hez, vagy annak valamilyen kiegészítő bővítményéhez készültek. Hasznos tanuló fejlesztők részére, és azok számára is, akik rapid megoldásokat keresnek, 1-1 feladat megoldására, és esetleg nélkülöznék a bővítmény használatát.
 
 ### mezok.md
 
