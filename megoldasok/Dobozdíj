@@ -1,0 +1,172 @@
+// másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
+// Ez a kód minden termékszerkesztőfelülethet hozzáad egy új tabot Extra doboz néven. Példa kép: https://prnt.sc/76u15dsvpr1L
+// Állítsd be a termékhez a dobozt. A termék oldalán, a kosárba teszem gombnál megjelenik egy választó mező két értékkel. 
+// A péntráe és kosár oldalon megjelenítésre kerül.
+// ez a kód extra díjként (woocommerce fee) számolja fel a dobozt. Minden azonos terméknél minden mennyiség 1 doboz, tehát ha két termék 2 doboz, a beállított árat tehát tételenként kalkulálja. opcionálisan beállíthatod hogy az extra díjhoz az adót hozzákalkulálja-e vagy sem.
+
+
+function add_extra_box_product_tab($tabs) {
+    $tabs['extra_box'] = array(
+        'label'    => __('Extra Doboz', 'woocommerce'),
+        'target'   => 'extra_box_product_data',
+        'class'    => array('show_if_simple', 'show_if_variable'),
+    );
+    return $tabs;
+}
+add_filter('woocommerce_product_data_tabs', 'add_extra_box_product_tab');
+
+
+function add_extra_box_product_data_fields() {
+    global $post;
+
+    echo '<div id="extra_box_product_data" class="panel woocommerce_options_panel">';
+    
+    // Doboz díj (checkbox)
+    woocommerce_wp_checkbox(array(
+        'id'          => '_enable_box_fee',
+        'label'       => __('Doboz díj', 'woocommerce'),
+        'description' => __('Engedélyezi a doboz díjat ehhez a termékhez', 'woocommerce'),
+    ));
+    
+    // Megnevezés (text)
+    woocommerce_wp_text_input(array(
+        'id'          => '_box_fee_name',
+        'label'       => __('Megnevezés', 'woocommerce'),
+        'description' => __('A doboz díj megnevezése', 'woocommerce'),
+        'desc_tip'    => true,
+    ));
+    
+    // Ár (text)
+    woocommerce_wp_text_input(array(
+        'id'                => '_box_fee_price',
+        'label'             => __('Ár', 'woocommerce'),
+        'description'       => __('A doboz díj ára', 'woocommerce'),
+        'desc_tip'          => true,
+        'type'              => 'number',
+        'custom_attributes' => array(
+            'step' => 'any',
+            'min'  => '0',
+        ),
+    ));
+    
+    // Adó köteles (checkbox)
+    woocommerce_wp_checkbox(array(
+        'id'          => '_box_fee_taxable',
+        'label'       => __('Adó köteles', 'woocommerce'),
+        'description' => __('A doboz díj adóköteles?', 'woocommerce'),
+    ));
+    
+    echo '</div>';
+}
+add_action('woocommerce_product_data_panels', 'add_extra_box_product_data_fields');
+
+
+function save_extra_box_product_data_fields($post_id) {
+    $enable_box_fee = isset($_POST['_enable_box_fee']) ? 'yes' : 'no';
+    update_post_meta($post_id, '_enable_box_fee', $enable_box_fee);
+
+    if (isset($_POST['_box_fee_name'])) {
+        update_post_meta($post_id, '_box_fee_name', sanitize_text_field($_POST['_box_fee_name']));
+    }
+
+    if (isset($_POST['_box_fee_price'])) {
+        update_post_meta($post_id, '_box_fee_price', sanitize_text_field($_POST['_box_fee_price']));
+    }
+
+    $box_fee_taxable = isset($_POST['_box_fee_taxable']) ? 'yes' : 'no';
+    update_post_meta($post_id, '_box_fee_taxable', $box_fee_taxable);
+}
+add_action('woocommerce_process_product_meta', 'save_extra_box_product_data_fields');
+
+function display_box_fee_option() {
+    global $product;
+
+    $enable_box_fee = get_post_meta($product->get_id(), '_enable_box_fee', true);
+
+    if ('yes' === $enable_box_fee) {
+        $box_fee_name    = get_post_meta($product->get_id(), '_box_fee_name', true);
+        $box_fee_price   = get_post_meta($product->get_id(), '_box_fee_price', true);
+        $currency_symbol = get_woocommerce_currency_symbol();
+
+        $options = array(
+            'no'  => __('Nem kérek dobozt', 'woocommerce'),
+            'yes' => __('Kérek dobozt', 'woocommerce'),
+        );
+
+        if ($box_fee_price) {
+            $formatted_price = strip_tags(wc_price($box_fee_price));
+            $options['yes'] .= ' (' . $formatted_price . ')';
+        }
+
+        echo '<div class="extra-box-option">';
+        echo '<label for="extra_box_option">' . __('Doboz opció', 'woocommerce') . '</label>';
+        echo '<select name="extra_box_option" id="extra_box_option">';
+        foreach ($options as $value => $label) {
+            $selected = ($value == 'no') ? 'selected' : '';
+            echo '<option value="' . esc_attr($value) . '" ' . $selected . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select>';
+        echo '</div>';
+    }
+}
+add_action('woocommerce_before_add_to_cart_button', 'display_box_fee_option');
+
+function add_box_fee_cart_item_data($cart_item_data, $product_id, $variation_id) {
+    if (isset($_POST['extra_box_option'])) {
+        $cart_item_data['extra_box_option'] = sanitize_text_field($_POST['extra_box_option']);
+    }
+    return $cart_item_data;
+}
+add_filter('woocommerce_add_cart_item_data', 'add_box_fee_cart_item_data', 10, 3);
+
+
+function display_box_fee_option_in_cart($item_data, $cart_item) {
+    if (isset($cart_item['extra_box_option']) && $cart_item['extra_box_option'] == 'yes') {
+        $item_data[] = array(
+            'name'  => __('Doboz', 'woocommerce'),
+            'value' => __('Kérek dobozt', 'woocommerce'),
+        );
+    }
+    return $item_data;
+}
+add_filter('woocommerce_get_item_data', 'display_box_fee_option_in_cart', 10, 2);
+
+
+function add_box_fee_to_cart($cart) {
+    if (is_admin() && !defined('DOING_AJAX')) {
+        return;
+    }
+
+    foreach ($cart->get_fees() as $key => $fee) {
+        if (strpos($fee->id, 'box_fee_') !== false) {
+            unset($cart->fees_api()->fees[$key]);
+        }
+    }
+
+    foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
+        if (isset($cart_item['extra_box_option']) && $cart_item['extra_box_option'] == 'yes') {
+            $product_id      = $cart_item['product_id'];
+            
+            $enable_box_fee  = get_post_meta($product_id, '_enable_box_fee', true);
+            $box_fee_price   = get_post_meta($product_id, '_box_fee_price', true);
+            $box_fee_name    = get_post_meta($product_id, '_box_fee_name', true);
+            $box_fee_taxable = get_post_meta($product_id, '_box_fee_taxable', true);
+
+            if ('yes' === $enable_box_fee && !empty($box_fee_price)) {
+                $quantity = $cart_item['quantity'];
+                $fee      = $box_fee_price * $quantity;
+
+                $taxable   = ('yes' === $box_fee_taxable) ? true : false;
+                $tax_class = $taxable ? '' : 'zero-rate';
+
+                $fee_name = $box_fee_name ? $box_fee_name : __('Doboz díj', 'woocommerce');
+
+                $fee_id = 'box_fee_' . $cart_item_key;
+
+                $cart->add_fee($fee_name, $fee, $taxable, $tax_class);
+            }
+        }
+    }
+}
+add_action('woocommerce_cart_calculate_fees', 'add_box_fee_to_cart');
+
