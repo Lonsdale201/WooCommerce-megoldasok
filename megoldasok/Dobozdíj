@@ -1,7 +1,8 @@
 // másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
 // Ez a kód minden termékszerkesztőfelülethet hozzáad egy új tabot Extra doboz néven. Példa kép: https://prnt.sc/76u15dsvpr1L
 // Állítsd be a termékhez a dobozt. A termék oldalán, a kosárba teszem gombnál megjelenik egy választó mező két értékkel. 
-// A péntráe és kosár oldalon megjelenítésre kerül.
+// A pénztár és kosár oldalon megjelenítésre kerül.
+// minta kép: https://prnt.sc/2ERnGrL_mlaT
 // ez a kód extra díjként (woocommerce fee) számolja fel a dobozt. Minden azonos terméknél minden mennyiség 1 doboz, tehát ha két termék 2 doboz, a beállított árat tehát tételenként kalkulálja. opcionálisan beállíthatod hogy az extra díjhoz az adót hozzákalkulálja-e vagy sem.
 
 
