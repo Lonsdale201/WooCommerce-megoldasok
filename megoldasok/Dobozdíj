@@ -16,7 +16,6 @@ function add_extra_box_product_tab($tabs) {
 }
 add_filter('woocommerce_product_data_tabs', 'add_extra_box_product_tab');
 
-
 function add_extra_box_product_data_fields() {
     global $post;
 
@@ -61,7 +60,6 @@ function add_extra_box_product_data_fields() {
 }
 add_action('woocommerce_product_data_panels', 'add_extra_box_product_data_fields');
 
-
 function save_extra_box_product_data_fields($post_id) {
     $enable_box_fee = isset($_POST['_enable_box_fee']) ? 'yes' : 'no';
     update_post_meta($post_id, '_enable_box_fee', $enable_box_fee);
@@ -81,6 +79,10 @@ add_action('woocommerce_process_product_meta', 'save_extra_box_product_data_fiel
 
 function display_box_fee_option() {
     global $product;
+    
+    if (!$product instanceof WC_Product) {
+        return;
+    }
 
     $enable_box_fee = get_post_meta($product->get_id(), '_enable_box_fee', true);
 
@@ -100,7 +102,7 @@ function display_box_fee_option() {
         }
 
         echo '<div class="extra-box-option">';
-        echo '<label for="extra_box_option">' . __('Doboz opció', 'woocommerce') . '</label>';
+        echo '<label for="extra_box_option">' . esc_html__('Doboz opció', 'woocommerce') . '</label>';
         echo '<select name="extra_box_option" id="extra_box_option">';
         foreach ($options as $value => $label) {
             $selected = ($value == 'no') ? 'selected' : '';
@@ -108,18 +110,23 @@ function display_box_fee_option() {
         }
         echo '</select>';
         echo '</div>';
+
+        wp_nonce_field('add_extra_box_nonce', 'extra_box_nonce');
     }
 }
 add_action('woocommerce_before_add_to_cart_button', 'display_box_fee_option');
 
 function add_box_fee_cart_item_data($cart_item_data, $product_id, $variation_id) {
+    if (!isset($_POST['extra_box_nonce']) || !wp_verify_nonce($_POST['extra_box_nonce'], 'add_extra_box_nonce')) {
+        return $cart_item_data; 
+    }
+
     if (isset($_POST['extra_box_option'])) {
         $cart_item_data['extra_box_option'] = sanitize_text_field($_POST['extra_box_option']);
     }
     return $cart_item_data;
 }
 add_filter('woocommerce_add_cart_item_data', 'add_box_fee_cart_item_data', 10, 3);
-
 
 function display_box_fee_option_in_cart($item_data, $cart_item) {
     if (isset($cart_item['extra_box_option']) && $cart_item['extra_box_option'] == 'yes') {
@@ -131,7 +138,6 @@ function display_box_fee_option_in_cart($item_data, $cart_item) {
     return $item_data;
 }
 add_filter('woocommerce_get_item_data', 'display_box_fee_option_in_cart', 10, 2);
-
 
 function add_box_fee_to_cart($cart) {
     if (is_admin() && !defined('DOING_AJAX')) {
@@ -170,4 +176,3 @@ function add_box_fee_to_cart($cart) {
     }
 }
 add_action('woocommerce_cart_calculate_fees', 'add_box_fee_to_cart');
-
