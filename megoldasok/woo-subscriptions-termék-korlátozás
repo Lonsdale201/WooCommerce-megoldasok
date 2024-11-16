@@ -1,0 +1,25 @@
+// másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
+// ez a kód megnézi hogy a bejelentkezett felhasználónak van-e bármilyen woo előfizetése ami aktív, ha nincs akkor a lentebb megadott termékeket számára átállítja, hogy nem vásárolhatja meg. nem bejelentkezett userek egyáltlaán nem vehetik meg a terméket
+// https://woocommerce.com/products/woocommerce-subscriptions/
+
+
+function user_has_active_subscription() {
+    if (is_user_logged_in()) {
+        $user_id = get_current_user_id();
+        if (function_exists('wcs_user_has_subscription')) {
+            return wcs_user_has_subscription($user_id, '', 'active');
+        }
+    }
+    return false;
+}
+
+function disable_add_to_cart_for_non_subscribers($is_purchasable, $product) {
+    $restricted_product_ids = array(4399, 3452); // cseréld ki azokra a termék azonosítókra amiket korlátozni akarsz, bármennyit megadhatsz
+
+    if (!user_has_active_subscription() && in_array($product->get_id(), $restricted_product_ids)) {
+        return false;
+    }
+
+    return $is_purchasable;
+}
+add_filter('woocommerce_is_purchasable', 'disable_add_to_cart_for_non_subscribers', 10, 2);
