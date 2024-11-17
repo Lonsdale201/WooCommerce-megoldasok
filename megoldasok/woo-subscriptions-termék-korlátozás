@@ -1,5 +1,5 @@
 // másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
-// ez a kód megnézi hogy a bejelentkezett felhasználónak van-e bármilyen woo előfizetése ami aktív, ha nincs akkor a lentebb megadott termékeket számára átállítja, hogy nem vásárolhatja meg. nem bejelentkezett userek egyáltlaán nem vehetik meg a terméket
+// ez a kód megnézi hogy a bejelentkezett felhasználónak van-e bármilyen woo előfizetése ami aktív, ha nincs akkor a lentebb megadott termékeket számára átállítja, hogy nem vásárolhatja meg. nem bejelentkezett userek egyáltalán  nem vehetik meg a terméket
 // https://woocommerce.com/products/woocommerce-subscriptions/
 
 
