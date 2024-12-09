@@ -1,0 +1,78 @@
+// másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
+// Ez a kód egy előre meghatározott termék készletét frissíti annak függvényében hogy a rákapcsolt termékekből mennyit vásároltak meg. Ha a központi termékből már nincs elég készleten, nem engedi a megadott mennyiség kosárhoz adását.
+// Írd át a kód tetején a megjelölt ID a tiédre. "4030" -> cseréld le a saját termék azonosítódra. Ez lesz a központi termék. Állítsd be rejtett állapotra. (javasolt)
+// Minden termék amit ráakarsz kapcsoolni, jelöld be a termékek szerkesztési felületén a Közös készlet checkboxot, amit megtalálsz a Virtuális és digitális termék checkboxok mellett. A megjelölt termékeket ha vásárolsz azok mennyiségét levonja a központi termék készletéből
+// KÉP https://prnt.sc/-NJIyr2qZOp8
+
+// Alapanyag termék globális ID
+define('BASE_MATERIAL_PRODUCT_ID', 4030); // Itt add meg az alapanyag termék ID-t
+
+add_filter('woocommerce_is_purchasable', function ($purchasable, $product) {
+    if ($product->get_id() === BASE_MATERIAL_PRODUCT_ID) {
+        return false;
+    }
+    return $purchasable;
+}, 10, 2);
+
+
+add_filter('product_type_options', function ($product_type_options) {
+    $product_type_options['common_stock'] = [
+        'id'            => '_common_stock',
+        'wrapper_class' => 'show_if_simple show_if_variable',
+        'label'         => __('Közös készlet', 'woocommerce'),
+        'default'       => 'no',
+        'description'   => __('Kapcsolódik az alapanyag termék készletéhez', 'woocommerce'),
+    ];
+    return $product_type_options;
+});
+
+add_action('woocommerce_admin_process_product_object', function ($product) {
+    $common_stock_value = isset($_POST["_common_stock"]) ? "yes" : "no";
+    $product->update_meta_data("_common_stock", sanitize_text_field($common_stock_value));
+});
+
+add_filter('woocommerce_add_to_cart_validation', function ($passed, $product_id, $quantity) {
+    $product = wc_get_product($product_id);
+
+
+    if ($product->get_meta('_common_stock') === 'yes') {
+        $base_material = wc_get_product(BASE_MATERIAL_PRODUCT_ID);
+        $base_stock = $base_material->get_stock_quantity();
+
+        if ($base_stock === null || $base_stock < $quantity) {
+            wc_add_notice(
+                sprintf(__('Nincs elegendő készlet az alapanyag termékből: %s.', 'woocommerce'), $base_material->get_name()),
+                'error'
+            );
+            return false;
+        }
+    }
+
+    return $passed;
+}, 10, 3);
+
+add_action('woocommerce_thankyou', function ($order_id) {
+    $order = wc_get_order($order_id);
+    $total_quantity = 0;
+
+    foreach ($order->get_items() as $item) {
+        $product_id = $item->get_product_id();
+        $product = wc_get_product($product_id);
+
+        if ($product->get_meta('_common_stock') === 'yes') {
+            $total_quantity += $item->get_quantity();
+        }
+    }
+
+    if ($total_quantity > 0) {
+        $base_material = wc_get_product(BASE_MATERIAL_PRODUCT_ID);
+        $base_stock = $base_material->get_stock_quantity();
+
+        if ($base_stock !== null) {
+            $new_stock = max(0, $base_stock - $total_quantity);
+            $base_material->set_stock_quantity($new_stock);
+            $base_material->save();
+        }
+    }
+});
+
