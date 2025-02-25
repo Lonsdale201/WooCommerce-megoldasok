@@ -1,5 +1,5 @@
 // másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
-// Ez a kód minden termék szerkesztőfelület - Általános tabfüléhez hozzáad két új beállítást. A checkbox és egy kuponválasztó, aminek együttes beállításával az adott terméket csak akkor lehet megvásárolni
+// Ez a kód minden termék szerkesztőfelület - Általános tabfüléhez hozzáad két új beállítást. A checkbox és egy kuponválasztó, aminek együttes beállításával az adott terméket csak akkor lehet megvásárolni (nem kompatibilis a variálható termékekkel)
 // ha a kiválasztott kupont használják hozzá.
 
 add_action('woocommerce_product_options_general_product_data', function () {
