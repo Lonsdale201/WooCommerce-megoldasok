@@ -1,0 +1,79 @@
+// másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
+// Ez a kód minden termék szerkesztőfelület - Általános tabfüléhez hozzáad két új beállítást. A checkbox és egy kuponválasztó, aminek együttes beállításával az adott terméket csak akkor lehet megvásárolni
+// ha a kiválasztott kupont használják hozzá.
+
+add_action('woocommerce_product_options_general_product_data', function () {
+    global $post;
+
+    if (!function_exists('wc_get_products')) {
+        return;
+    }
+
+    echo '<div class="options_group">';
+
+    woocommerce_wp_checkbox(array(
+        'id'          => '_purchase_only_with_coupon',
+        'label'       => __('Termék vásárlása csak kuponnal', 'woocommerce'),
+        'description' => __('A termék csak kupon használatával vásárolható meg.', 'woocommerce'),
+    ));
+
+    $coupons = get_posts(array(
+        'post_type'   => 'shop_coupon',
+        'post_status' => 'publish',
+        'numberposts' => -1,
+    ));
+
+    $coupon_options = array('' => __('-- Válassz kupont --', 'woocommerce'));
+    foreach ($coupons as $coupon) {
+        $coupon_options[$coupon->post_title] = $coupon->post_title;
+    }
+
+    woocommerce_wp_select(array(
+        'id'          => '_required_coupon_code',
+        'label'       => __('Szükséges kupon', 'woocommerce'),
+        'options'     => $coupon_options,
+        'desc_tip'    => true,
+        'description' => __('Válaszd ki azt a kupont, amelynek használata kötelező ehhez a termékhez.', 'woocommerce'),
+    ));
+
+    echo '</div>';
+});
+
+add_action('woocommerce_process_product_meta', function ($post_id) {
+    $is_restricted = isset($_POST['_purchase_only_with_coupon']) ? 'yes' : 'no';
+    $coupon_code = isset($_POST['_required_coupon_code']) ? sanitize_text_field($_POST['_required_coupon_code']) : '';
+
+    update_post_meta($post_id, '_purchase_only_with_coupon', $is_restricted);
+    update_post_meta($post_id, '_required_coupon_code', $coupon_code);
+});
+
+add_action('woocommerce_check_cart_items', function () {
+    $cart = WC()->cart->get_cart();
+    $applied_coupons = WC()->cart->get_applied_coupons();
+    
+    foreach ($cart as $cart_item) {
+        $product_id = $cart_item['product_id'];
+        $is_restricted = get_post_meta($product_id, '_purchase_only_with_coupon', true);
+        $required_coupon = get_post_meta($product_id, '_required_coupon_code', true);
+
+        if ($is_restricted === 'yes' && $required_coupon) {
+            if (!in_array(strtolower($required_coupon), array_map('strtolower', $applied_coupons))) {
+                wc_add_notice(sprintf(__('A "%s" vásárlásához kupon szükséges.', 'woocommerce'), get_the_title($product_id)), 'error');
+            }
+        }
+    }
+});
+
+add_action('woocommerce_removed_coupon', function ($coupon_code) {
+    $cart = WC()->cart->get_cart();
+
+    foreach ($cart as $cart_item) {
+        $product_id = $cart_item['product_id'];
+        $is_restricted = get_post_meta($product_id, '_purchase_only_with_coupon', true);
+        $required_coupon = get_post_meta($product_id, '_required_coupon_code', true);
+
+        if ($is_restricted === 'yes' && strtolower($coupon_code) === strtolower($required_coupon)) {
+            wc_add_notice(sprintf(__('A "%s" vásárlásához kupon szükséges.', 'woocommerce'), get_the_title($product_id)), 'error');
+        }
+    }
+});
