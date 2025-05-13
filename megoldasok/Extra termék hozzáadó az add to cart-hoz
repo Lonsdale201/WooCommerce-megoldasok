@@ -5,7 +5,7 @@
 // Példa kép2 : https://prnt.sc/4-Ilf9Ss_oIw
 // a kód tartaalmaz: PHP, CSS, JS (inline)
 // Definiálható értékek a kódban: 
-    $max_selected_products = 2; // Itt adhatod meg, hogy mennyi terméket lehet maximum bejelölni
+    $max_selected_products = 6; // Itt adhatod meg, hogy mennyi terméket lehet maximum bejelölni
     $display_featured_image = true; // kiemelt kép megjelenítése
     $display_product_name = true; // termék név megjelenítése
     $display_product_price = true; // termék ár megjelenítése
@@ -16,22 +16,38 @@
 //
 
 
-// Egyedi meta mező létrehozása
-function add_custom_product_meta_field() {
+/*--------------------------------------------------
+ * 1) EXTRA TERMÉKEK – mező a termékszerkesztőben
+ *-------------------------------------------------*/
+function teb_add_extra_products_field() {
     global $post;
     ?>
     <div class="options_group">
         <p class="form-field custom_product_meta_field">
-            <label for="extra_products"><?php esc_html_e('Extra termékek', 'woocommerce'); ?></label>
-            <select class="wc-product-search" multiple="multiple" style="width: 50%;" id="extra_products" name="extra_products[]" data-placeholder="<?php esc_attr_e('Válasszon termékeket', 'woocommerce'); ?>" data-action="woocommerce_json_search_products_and_variations">
+            <label for="extra_products">
+                <?php esc_html_e( 'Extra termékek', 'woocommerce' ); ?>
+            </label>
+
+            <select
+                class="wc-product-search"
+                multiple="multiple"
+                style="width: 50%;"
+                id="extra_products"
+                name="extra_products[]"
+                data-placeholder="<?php esc_attr_e( 'Válasszon termékeket', 'woocommerce' ); ?>"
+                data-action="woocommerce_json_search_products_and_variations">
+
                 <?php
-                $extra_products = get_post_meta($post->ID, '_extra_products', true);
-                if (!empty($extra_products)) {
-                    $extra_products = explode(',', $extra_products);
-                    foreach ($extra_products as $product_id) {
-                        $product = wc_get_product($product_id);
-                        if (is_object($product)) {
-                            echo '<option value="' . esc_attr($product_id) . '" selected="selected">' . esc_html($product->get_name()) . '</option>';
+                $stored = get_post_meta( $post->ID, '_extra_products', true );
+                if ( ! empty( $stored ) ) {
+                    foreach ( explode( ',', $stored ) as $product_id ) {
+                        $product = wc_get_product( $product_id );
+                        if ( $product ) {
+                            printf(
+                                '<option value="%d" selected="selected">%s</option>',
+                                esc_attr( $product_id ),
+                                esc_html( $product->get_name() )
+                            );
                         }
                     }
                 }
@@ -40,22 +56,34 @@ function add_custom_product_meta_field() {
         </p>
     </div>
     <?php
-    wp_nonce_field('save_extra_products_meta', 'extra_products_meta_nonce');
+    wp_nonce_field( 'save_extra_products_meta', 'extra_products_meta_nonce' );
 }
-add_action('woocommerce_product_options_pricing', 'add_custom_product_meta_field');
+add_action( 'woocommerce_product_options_pricing', 'teb_add_extra_products_field' );
 
-// Egyedi meta mező mentése
-function save_custom_product_meta_field($post_id) {
-    if (!isset($_POST['extra_products_meta_nonce']) || !wp_verify_nonce($_POST['extra_products_meta_nonce'], 'save_extra_products_meta')) {
+
+/*--------------------------------------------------
+ * 2) EXTRA TERMÉKEK – mentés
+ *-------------------------------------------------*/
+add_action( 'woocommerce_admin_process_product_object', 'teb_save_extra_products_field' );
+
+function teb_save_extra_products_field( $product ) {
+
+    /* --- nonce ellenőrzés --- */
+    if (
+        ! isset( $_POST['extra_products_meta_nonce'] ) ||
+        ! wp_verify_nonce( $_POST['extra_products_meta_nonce'], 'save_extra_products_meta' )
+    ) {
         return;
     }
 
-    if (isset($_POST['extra_products'])) {
-        $extra_products = array_map('sanitize_text_field', $_POST['extra_products']);
-        update_post_meta($post_id, '_extra_products', implode(',', $extra_products));
+    /* --- adatmentés / törlés --- */
+    if ( ! empty( $_POST['extra_products'] ) ) {
+        $extra_products = array_map( 'absint', (array) $_POST['extra_products'] );
+        $product->update_meta_data( '_extra_products', implode( ',', $extra_products ) );
     } else {
-        delete_post_meta($post_id, '_extra_products');
+        $product->delete_meta_data( '_extra_products' );
     }
+    $product->save();
 }
 
 // Extra termékek megjelenítése a termék single oldalon, a kosárhoz adás gombnál
