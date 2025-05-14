@@ -1,5 +1,6 @@
 // másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
 // Ez a kód a termékek esetében a szerkesztő felületen hozzáad egy Extra termékek nevű select metát, ahol egy vagy több woo terméket tudsz kiválasztani. A kiválasztott termékek az adott termék kosárhoz adása single oldalon megjeleníti a kosárhoz adás gomb felett közvetlenül
+// ez a megoldás a hozzárendelt termékeket FEE-ként adja hozzá nem különálló tételként
 // Beállítható hogy mennyi ilyet lehet bejelölni, és a kosárban adom gomb megnyomásakor, ezeket az extra termékeket is hozzáadja. a Kódban egyszerűen definiálható, hogy mennyi értéket lehet bejelölni, és hogyna jelenítse meg a termékeket.
 // Példa kép: https://prnt.sc/cb36zB5X4zM0
 // Példa kép2 : https://prnt.sc/4-Ilf9Ss_oIw
