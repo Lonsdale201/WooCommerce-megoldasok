@@ -1,0 +1,35 @@
+// másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
+// a kód nem enegd csak számokat, és 4 számjegyet beírni. Hibaüzenet megjelenik ha hibásan írta be.
+
+add_action('woocommerce_checkout_process', 'validate_zip_code_field');
+add_action('woocommerce_after_order_notes', 'display_zip_code_validation_script');
+
+function validate_zip_code_field() {
+    $postcode = isset($_POST['billing_postcode']) ? sanitize_text_field($_POST['billing_postcode']) : '';
+
+    if (!preg_match('/^[0-9]{4}$/', $postcode)) {
+        wc_add_notice(__('Az irányítószámnak pontosan 4 számjegyből kell állnia és csak szám lehet!'), 'error');
+    }
+}
+
+function display_zip_code_validation_script() {
+    ?>
+    <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            $(document).on('input', '#billing_postcode', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+            $('#billing_postcode').on('blur', function() {
+                let postcode = $(this).val();
+                if (postcode.length !== 4) {
+                    if (!$('#zip-error-message').length) {
+                        $(this).after('<span id="zip-error-message" style="color: red;">Az irányítószámnak pontosan 4 számjegyből kell állnia!</span>');
+                    }
+                } else {
+                    $('#zip-error-message').remove();
+                }
+            });
+        });
+    </script>
+    <?php
+}
