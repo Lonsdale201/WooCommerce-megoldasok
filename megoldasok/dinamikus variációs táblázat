@@ -1,0 +1,91 @@
+// Másold be a functions.php fájlba (Child theme!), vagy egy speciális code snippets pluginba, például FluentSnippets
+// ez a kód elrejti az eredeti variációs táblázatot a további információk tabfölön, és JS segítségével sajátot épít fel, a kiválasztott variációk alapján. A szükséges helyen cseréld az azonosíótkat ha a sablonod eltérő névvel generálja atáblázatot
+
+// 1. CSS: az eredeti WooCommerce-táblát elrejti a "További információk" tabban.
+//    (MODOSÍTANDÓ: ha a tab más azonosítóval/osztállyal rendelkezik, cseréld le a #tab-additional_information > table.shop_attributes a sajátodra )
+add_action('wp_head', function() {
+    if (is_product()) {
+        echo '<style>
+            /* Eredeti táblázat elrejtése */
+            #tab-additional_information > table.shop_attributes {
+                display: none !important;
+            }
+        </style>';
+    }
+});
+
+// 2. JS: kliensoldalon épít egy saját táblázatot, csak a kiválasztottakkal építi fel
+add_action('wp_footer', function() {
+    if (is_product()) : ?>
+
+    <script>
+    jQuery(function($){
+        // (MODOSÍTANDÓ: ha a tab más azonosítóval van, cseréld le a #tab-additional_information részt)
+        var $parentTab = $('#tab-additional_information');
+        if (!$parentTab.length) {
+            console.warn('Nem található #tab-additional_information elem.');
+            return;
+        }
+
+        // Saját táblázat-konténer
+        var $customTableContainer = $('<div id="custom-variation-attributes"></div>');
+        $parentTab.append($customTableContainer);
+
+        // Táblázat felépítése
+        function buildCustomAttributesTable() {
+            $customTableContainer.empty();
+
+            var selectedAttrs = {};
+            $('form.variations_form select[name^="attribute_"]').each(function(){
+                var name = $(this).attr('name');
+                var val  = $(this).val();
+                if (val) {
+                    selectedAttrs[name] = val;
+                }
+            });
+
+            if ($.isEmptyObject(selectedAttrs)) {
+                return;
+            }
+
+            var $table = $('<table class="custom_variation_attributes"></table>');
+
+            $.each(selectedAttrs, function(attr_name, attr_value){
+                var $select = $('select[name="' + attr_name + '"]');
+                if (!$select.length) {
+                    return true;
+                }
+
+                var $labelTd = $select.closest('tr').find('td.label label');
+                var attributeLabel = $labelTd.length
+                    ? $labelTd.text().trim()
+                    : attr_name.replace('attribute_pa_', '').replace(/-/g, ' ');
+
+                var optionText = $select.find('option[value="' + attr_value + '"]').text().trim() || attr_value;
+
+                var $row = $(
+                    '<tr>' +
+                        '<th>' + $('<div>').text(attributeLabel).html() + '</th>' +
+                        '<td>' + $('<div>').text(optionText).html() + '</td>' +
+                    '</tr>'
+                );
+                $table.append($row);
+            });
+
+            if ($table.find('tr').length) {
+                $customTableContainer.append($table);
+            }
+        }
+
+        $('form.variations_form').on('change', 'select[name^="attribute_"]', function(){
+            buildCustomAttributesTable();
+        });
+
+        $('form.variations_form').on('reset_variations', function(){
+            $customTableContainer.empty();
+        });
+    });
+    </script>
+
+    <?php endif;
+});
